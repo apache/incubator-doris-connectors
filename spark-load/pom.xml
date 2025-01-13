@@ -40,7 +40,7 @@
         <revision>25.0.0-SNAPSHOT</revision>
         <commons-codec.version>1.13</commons-codec.version>
         <commons-lang3.version>3.9</commons-lang3.version>
-        <hadoop.version>3.3.6</hadoop.version>
+        <hadoop.version>3.4.0</hadoop.version>
         <netty-all.version>4.1.104.Final</netty-all.version>
         <parquet.version>1.13.1</parquet.version>
         <commons-collections.version>3.2.2</commons-collections.version>
