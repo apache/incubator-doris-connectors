@@ -34,8 +34,10 @@ public class DorisReaderPartition implements Serializable {
     private final String[] filters;
     private final Integer limit;
     private final DorisConfig config;
+    private final Boolean datetimeJava8ApiEnabled;
 
-    public DorisReaderPartition(String database, String table, Backend backend, Long[] tablets, String opaquedQueryPlan, String[] readColumns, String[] filters, DorisConfig config) {
+    public DorisReaderPartition(String database, String table, Backend backend, Long[] tablets, String opaquedQueryPlan,
+                                String[] readColumns, String[] filters, DorisConfig config, Boolean datetimeJava8ApiEnabled) {
         this.database = database;
         this.table = table;
         this.backend = backend;
@@ -45,9 +47,11 @@ public class DorisReaderPartition implements Serializable {
         this.filters = filters;
         this.limit = -1;
         this.config = config;
+        this.datetimeJava8ApiEnabled = datetimeJava8ApiEnabled;
     }
 
-    public DorisReaderPartition(String database, String table, Backend backend, Long[] tablets, String opaquedQueryPlan, String[] readColumns, String[] filters, Integer limit, DorisConfig config) {
+    public DorisReaderPartition(String database, String table, Backend backend, Long[] tablets, String opaquedQueryPlan,
+                                String[] readColumns, String[] filters, Integer limit, DorisConfig config, Boolean datetimeJava8ApiEnabled) {
         this.database = database;
         this.table = table;
         this.backend = backend;
@@ -57,6 +61,7 @@ public class DorisReaderPartition implements Serializable {
         this.filters = filters;
         this.limit = limit;
         this.config = config;
+        this.datetimeJava8ApiEnabled = datetimeJava8ApiEnabled;
     }
 
     // Getters and Setters
@@ -96,6 +101,10 @@ public class DorisReaderPartition implements Serializable {
         return limit;
     }
 
+    public Boolean getDateTimeJava8APIEnabled() {
+        return datetimeJava8ApiEnabled;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
@@ -108,11 +117,13 @@ public class DorisReaderPartition implements Serializable {
                 && Objects.deepEquals(readColumns, that.readColumns)
                 && Objects.deepEquals(filters, that.filters)
                 && Objects.equals(limit, that.limit)
-                && Objects.equals(config, that.config);
+                && Objects.equals(config, that.config)
+                && Objects.equals(datetimeJava8ApiEnabled, that.datetimeJava8ApiEnabled);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(database, table, backend, Arrays.hashCode(tablets), opaquedQueryPlan, Arrays.hashCode(readColumns), Arrays.hashCode(filters), limit, config);
+        return Objects.hash(database, table, backend, Arrays.hashCode(tablets), opaquedQueryPlan,
+                Arrays.hashCode(readColumns), Arrays.hashCode(filters), limit, config, datetimeJava8ApiEnabled);
     }
 }

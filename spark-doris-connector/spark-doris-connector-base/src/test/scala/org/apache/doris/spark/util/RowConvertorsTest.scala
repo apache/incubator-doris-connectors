@@ -25,6 +25,7 @@ import org.junit.Assert
 import org.junit.jupiter.api.Test
 
 import java.sql.{Date, Timestamp}
+import java.time.LocalDate
 
 class RowConvertorsTest {
 
@@ -103,16 +104,17 @@ class RowConvertorsTest {
 
   @Test def convertValue(): Unit = {
 
-    Assert.assertTrue(RowConvertors.convertValue(1, DataTypes.IntegerType).isInstanceOf[Int])
-    Assert.assertTrue(RowConvertors.convertValue(2.3.toFloat, DataTypes.FloatType).isInstanceOf[Float])
-    Assert.assertTrue(RowConvertors.convertValue(4.5, DataTypes.DoubleType).isInstanceOf[Double])
-    Assert.assertTrue(RowConvertors.convertValue(6.toShort, DataTypes.ShortType).isInstanceOf[Short])
-    Assert.assertTrue(RowConvertors.convertValue(7L, DataTypes.LongType).isInstanceOf[Long])
-    Assert.assertTrue(RowConvertors.convertValue(Decimal(BigDecimal(8910.11), 20, 4), DecimalType(20, 4)).isInstanceOf[Decimal])
-    Assert.assertTrue(RowConvertors.convertValue("2024-01-01", DataTypes.DateType).isInstanceOf[Int])
-    Assert.assertTrue(RowConvertors.convertValue("2024-01-01 12:34:56", DataTypes.TimestampType).isInstanceOf[Long])
-    Assert.assertTrue(RowConvertors.convertValue(Map[String, String]("a" -> "1"), MapType(DataTypes.StringType, DataTypes.StringType)).isInstanceOf[MapData])
-    Assert.assertTrue(RowConvertors.convertValue("test", DataTypes.StringType).isInstanceOf[UTF8String])
+    Assert.assertTrue(RowConvertors.convertValue(1, DataTypes.IntegerType, false).isInstanceOf[Int])
+    Assert.assertTrue(RowConvertors.convertValue(2.3.toFloat, DataTypes.FloatType, false).isInstanceOf[Float])
+    Assert.assertTrue(RowConvertors.convertValue(4.5, DataTypes.DoubleType, false).isInstanceOf[Double])
+    Assert.assertTrue(RowConvertors.convertValue(6.toShort, DataTypes.ShortType, false).isInstanceOf[Short])
+    Assert.assertTrue(RowConvertors.convertValue(7L, DataTypes.LongType, false).isInstanceOf[Long])
+    Assert.assertTrue(RowConvertors.convertValue(Decimal(BigDecimal(8910.11), 20, 4), DecimalType(20, 4), false).isInstanceOf[Decimal])
+    Assert.assertTrue(RowConvertors.convertValue(Date.valueOf("2024-01-01"), DataTypes.DateType, false).isInstanceOf[Int])
+    Assert.assertTrue(RowConvertors.convertValue(LocalDate.now(), DataTypes.DateType, true).isInstanceOf[Int])
+    Assert.assertTrue(RowConvertors.convertValue("2024-01-01 12:34:56", DataTypes.TimestampType, false).isInstanceOf[Long])
+    Assert.assertTrue(RowConvertors.convertValue(Map[String, String]("a" -> "1"), MapType(DataTypes.StringType, DataTypes.StringType), false).isInstanceOf[MapData])
+    Assert.assertTrue(RowConvertors.convertValue("test", DataTypes.StringType, false).isInstanceOf[UTF8String])
 
   }
 

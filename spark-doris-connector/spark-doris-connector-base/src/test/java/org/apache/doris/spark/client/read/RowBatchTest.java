@@ -56,6 +56,8 @@ import org.apache.doris.sdk.thrift.TStatusCode;
 import org.apache.doris.spark.exception.DorisException;
 import org.apache.doris.spark.rest.RestService;
 import org.apache.doris.spark.rest.models.Schema;
+import org.apache.spark.sql.internal.SQLConf;
+import org.apache.spark.sql.internal.SQLConf$;
 import org.apache.spark.sql.types.Decimal;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import org.junit.Assert;
@@ -73,6 +75,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
@@ -261,7 +264,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
 
         List<Object> expectedRow1 = Arrays.asList(
                 Boolean.TRUE,
@@ -375,7 +378,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
 
         Assert.assertTrue(rowBatch.hasNext());
         List<Object> actualRow0 = rowBatch.next();
@@ -439,7 +442,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
 
         Assert.assertTrue(rowBatch.hasNext());
         List<Object> actualRow0 = rowBatch.next();
@@ -527,7 +530,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
 
         Assert.assertTrue(rowBatch.hasNext());
         List<Object> actualRow0 = rowBatch.next();
@@ -602,7 +605,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
 
         Assert.assertTrue(rowBatch.hasNext());
         List<Object> actualRow0 = rowBatch.next();
@@ -683,7 +686,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
         Assert.assertTrue(rowBatch.hasNext());
         Assert.assertEquals(JavaConverters.mapAsScalaMapConverter(ImmutableMap.of("k1", "0")).asScala(),
                 rowBatch.next().get(0));
@@ -749,7 +752,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
         Assert.assertTrue(rowBatch.hasNext());
         Assert.assertEquals("{\"a\":\"a1\",\"b\":1}", rowBatch.next().get(0));
 
@@ -827,7 +830,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
 
         Assert.assertTrue(rowBatch.hasNext());
         List<Object> actualRow0 = rowBatch.next();
@@ -902,7 +905,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
 
         Assert.assertTrue(rowBatch.hasNext());
         List<Object> actualRow0 = rowBatch.next();
@@ -995,7 +998,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
         Assert.assertTrue(rowBatch.hasNext());
         List<Object> actualRow0 = rowBatch.next();
         assertEquals("0.0.0.0", actualRow0.get(0));
@@ -1104,7 +1107,7 @@ public class RowBatchTest {
 
         Schema schema = RestService.parseSchema(schemaStr, logger);
 
-        RowBatch rowBatch = new RowBatch(scanBatchResult, schema);
+        RowBatch rowBatch = new RowBatch(scanBatchResult, schema, false);
         Assert.assertTrue(rowBatch.hasNext());
         List<Object> actualRow0 = rowBatch.next();
         assertEquals("::", actualRow0.get(0));
@@ -1161,6 +1164,85 @@ public class RowBatchTest {
         thrown.expect(NoSuchElementException.class);
         thrown.expectMessage(startsWith("Get row offset:"));
         rowBatch.next();
+    }
+
+    @Test
+    public void testDatetimeJava8API() throws DorisException, IOException {
+
+        ImmutableList.Builder<Field> childrenBuilder = ImmutableList.builder();
+        childrenBuilder.add(new Field("k0", FieldType.nullable(new ArrowType.Utf8()), null));
+        childrenBuilder.add(new Field("k1", FieldType.nullable(new ArrowType.Date(DateUnit.DAY)), null));
+
+        VectorSchemaRoot root = VectorSchemaRoot.create(
+                new org.apache.arrow.vector.types.pojo.Schema(childrenBuilder.build(), null),
+                new RootAllocator(Integer.MAX_VALUE));
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ArrowStreamWriter arrowStreamWriter = new ArrowStreamWriter(
+                root,
+                new DictionaryProvider.MapDictionaryProvider(),
+                outputStream);
+
+        arrowStreamWriter.start();
+        root.setRowCount(1);
+
+        FieldVector vector = root.getVector("k0");
+        VarCharVector dateVector = (VarCharVector) vector;
+        dateVector.setInitialCapacity(1);
+        dateVector.allocateNew();
+        dateVector.setIndexDefined(0);
+        dateVector.setValueLengthSafe(0, 20);
+        dateVector.setSafe(0, "2025-01-01".getBytes());
+        vector.setValueCount(1);
+
+        LocalDate localDate = LocalDate.of(2025, 2, 1);
+        long date = localDate.toEpochDay();
+
+        vector = root.getVector("k1");
+        DateDayVector date2Vector = (DateDayVector) vector;
+        date2Vector.setInitialCapacity(1);
+        date2Vector.allocateNew();
+        date2Vector.setIndexDefined(0);
+        date2Vector.setSafe(0, (int) date);
+        vector.setValueCount(1);
+
+        arrowStreamWriter.writeBatch();
+
+        arrowStreamWriter.end();
+        arrowStreamWriter.close();
+
+        TStatus status = new TStatus();
+        status.setStatusCode(TStatusCode.OK);
+        TScanBatchResult scanBatchResult = new TScanBatchResult();
+        scanBatchResult.setStatus(status);
+        scanBatchResult.setEos(false);
+        scanBatchResult.setRows(outputStream.toByteArray());
+
+
+        String schemaStr = "{\"properties\":[" +
+                "{\"type\":\"DATE\",\"name\":\"k0\",\"comment\":\"\"}, " +
+                "{\"type\":\"DATEV2\",\"name\":\"k1\",\"comment\":\"\"}" +
+                "], \"status\":200}";
+
+        Schema schema = RestService.parseSchema(schemaStr, logger);
+
+        RowBatch rowBatch1 = new RowBatch(scanBatchResult, schema, false);
+
+        Assert.assertTrue(rowBatch1.hasNext());
+        List<Object> actualRow0 = rowBatch1.next();
+        Assert.assertEquals(Date.valueOf("2025-01-01"), actualRow0.get(0));
+        Assert.assertEquals(Date.valueOf("2025-02-01"), actualRow0.get(1));
+
+        Assert.assertFalse(rowBatch1.hasNext());
+
+        RowBatch rowBatch2 = new RowBatch(scanBatchResult, schema, true);
+
+        Assert.assertTrue(rowBatch2.hasNext());
+        List<Object> actualRow01 = rowBatch2.next();
+        Assert.assertEquals(LocalDate.of(2025,1,1), actualRow01.get(0));
+        Assert.assertEquals(localDate, actualRow01.get(1));
+
+        Assert.assertFalse(rowBatch2.hasNext());
+
     }
 
 }

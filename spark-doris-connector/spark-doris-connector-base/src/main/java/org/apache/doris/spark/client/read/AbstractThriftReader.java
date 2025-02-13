@@ -73,6 +73,8 @@ public abstract class AbstractThriftReader extends DorisReader {
 
     private int readCount = 0;
 
+    private final Boolean datetimeJava8ApiEnabled;
+
     protected AbstractThriftReader(DorisReaderPartition partition) throws Exception {
         super(partition);
         this.frontend = new DorisFrontendClient(config);
@@ -108,6 +110,7 @@ public abstract class AbstractThriftReader extends DorisReader {
             this.rowBatchQueue = null;
             this.asyncThread = null;
         }
+        this.datetimeJava8ApiEnabled = false;
     }
 
     private void runAsync() throws DorisException, InterruptedException {
@@ -124,7 +127,7 @@ public abstract class AbstractThriftReader extends DorisReader {
             });
             endOfStream.set(nextResult.isEos());
             if (!endOfStream.get()) {
-                rowBatch = new RowBatch(nextResult, dorisSchema);
+                rowBatch = new RowBatch(nextResult, dorisSchema, datetimeJava8ApiEnabled);
                 offset += rowBatch.getReadRowCount();
                 rowBatch.close();
                 rowBatchQueue.put(rowBatch);
@@ -178,7 +181,7 @@ public abstract class AbstractThriftReader extends DorisReader {
                 });
                 endOfStream.set(nextResult.isEos());
                 if (!endOfStream.get()) {
-                    rowBatch = new RowBatch(nextResult, dorisSchema);
+                    rowBatch = new RowBatch(nextResult, dorisSchema, datetimeJava8ApiEnabled);
                 }
             }
             hasNext = !endOfStream.get();

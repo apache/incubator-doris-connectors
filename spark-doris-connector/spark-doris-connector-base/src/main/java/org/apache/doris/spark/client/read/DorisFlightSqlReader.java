@@ -59,6 +59,7 @@ public class DorisFlightSqlReader extends DorisReader {
     private final Schema schema;
     private AdbcConnection connection;
     private final ArrowReader arrowReader;
+    private final Boolean datetimeJava8ApiEnabled;
 
     public DorisFlightSqlReader(DorisReaderPartition partition) throws Exception {
         super(partition);
@@ -74,6 +75,7 @@ public class DorisFlightSqlReader extends DorisReader {
         }
         this.schema = processDorisSchema(partition);
         this.arrowReader = executeQuery();
+        this.datetimeJava8ApiEnabled = partition.getDateTimeJava8APIEnabled();
     }
 
     @Override
@@ -85,7 +87,7 @@ public class DorisFlightSqlReader extends DorisReader {
                 throw new DorisException(e);
             }
             if (!endOfStream.get()) {
-                rowBatch = new RowBatch(arrowReader, schema);
+                rowBatch = new RowBatch(arrowReader, schema, datetimeJava8ApiEnabled);
             }
         }
         return !endOfStream.get();

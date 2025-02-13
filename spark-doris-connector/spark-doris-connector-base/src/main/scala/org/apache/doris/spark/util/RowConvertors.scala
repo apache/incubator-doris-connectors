@@ -23,10 +23,12 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.SpecializedGetters
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, DateTimeUtils}
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 import java.sql.{Date, Timestamp}
+import java.time.LocalDate
 import scala.collection.mutable
 
 object RowConvertors {
@@ -105,10 +107,11 @@ object RowConvertors {
     }
   }
 
-  def convertValue(v: Any, dataType: DataType): Any = {
+  def convertValue(v: Any, dataType: DataType, datetimeJava8ApiEnabled: Boolean): Any = {
     dataType match {
       case StringType => UTF8String.fromString(v.asInstanceOf[String])
       case TimestampType => DateTimeUtils.fromJavaTimestamp(Timestamp.valueOf(v.asInstanceOf[String]))
+      case DateType if datetimeJava8ApiEnabled => v.asInstanceOf[LocalDate].toEpochDay.toInt
       case DateType => DateTimeUtils.fromJavaDate(v.asInstanceOf[Date])
       case _: MapType =>
         val map = v.asInstanceOf[Map[String, String]]

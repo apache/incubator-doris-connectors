@@ -51,7 +51,9 @@ protected[spark] abstract class AbstractDorisRDD[T: ClassTag](
    */
   @transient private[spark] lazy val dorisCfg = DorisConfig.fromMap(sc.getConf.getAll.toMap.asJava, params.asJava, false)
 
-  @transient private[spark] lazy val dorisPartitions = ReaderPartitionGenerator.generatePartitions(dorisCfg)
+  @transient private[spark] lazy val dateTimeJava8ApiEnabled = sc.getConf.get("spark.sql.datetime.java8API.enabled", "false").toBoolean
+
+  @transient private[spark] lazy val dorisPartitions = ReaderPartitionGenerator.generatePartitions(dorisCfg, dateTimeJava8ApiEnabled)
 }
 
 private[spark] class DorisPartition(rddId: Int, idx: Int, val dorisPartition: DorisReaderPartition)

@@ -22,6 +22,7 @@ import org.apache.doris.spark.client.read.ReaderPartitionGenerator
 import org.apache.doris.spark.config.{DorisConfig, DorisOptions}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
 
 import scala.language.implicitConversions
@@ -35,7 +36,9 @@ abstract class AbstractDorisScan(config: DorisConfig, schema: StructType) extend
   override def toBatch: Batch = this
 
   override def planInputPartitions(): Array[InputPartition] = {
-    ReaderPartitionGenerator.generatePartitions(config, schema.names, compiledFilters(), getLimit).map(toInputPartition)
+    ReaderPartitionGenerator.generatePartitions(config, schema.names, compiledFilters(), getLimit,
+      SQLConf.get.datetimeJava8ApiEnabled)
+      .map(toInputPartition)
   }
 
 
@@ -44,7 +47,8 @@ abstract class AbstractDorisScan(config: DorisConfig, schema: StructType) extend
   }
 
   private def toInputPartition(rp: DorisReaderPartition): DorisInputPartition =
-    DorisInputPartition(rp.getDatabase, rp.getTable, rp.getBackend, rp.getTablets.map(_.toLong), rp.getOpaquedQueryPlan, rp.getReadColumns, rp.getFilters, rp.getLimit)
+    DorisInputPartition(rp.getDatabase, rp.getTable, rp.getBackend, rp.getTablets.map(_.toLong), rp.getOpaquedQueryPlan,
+      rp.getReadColumns, rp.getFilters, rp.getLimit, rp.getDateTimeJava8APIEnabled)
 
   protected def compiledFilters(): Array[String]
 
@@ -52,4 +56,6 @@ abstract class AbstractDorisScan(config: DorisConfig, schema: StructType) extend
 
 }
 
-case class DorisInputPartition(database: String, table: String, backend: Backend, tablets: Array[Long], opaquedQueryPlan: String, readCols: Array[String], predicates: Array[String], limit: Int = -1) extends InputPartition
+case class DorisInputPartition(database: String, table: String, backend: Backend, tablets: Array[Long],
+                               opaquedQueryPlan: String, readCols: Array[String], predicates: Array[String],
+                               limit: Int = -1, datetimeJava8ApiEnabled: Boolean) extends InputPartition

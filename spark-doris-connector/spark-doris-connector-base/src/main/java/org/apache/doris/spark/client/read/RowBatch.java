@@ -103,11 +103,14 @@ public class RowBatch implements Serializable {
     private int readRowCount = 0;
     private List<FieldVector> fieldVectors;
 
-    public RowBatch(TScanBatchResult nextResult, Schema schema) throws DorisException {
+    private final Boolean datetimeJava8ApiEnabled;
+
+    public RowBatch(TScanBatchResult nextResult, Schema schema, Boolean datetimeJava8ApiEnabled) throws DorisException {
 
         this.rootAllocator = new RootAllocator(Integer.MAX_VALUE);
         this.arrowReader = new ArrowStreamReader(new ByteArrayInputStream(nextResult.getRows()), rootAllocator);
         this.schema = schema;
+        this.datetimeJava8ApiEnabled = datetimeJava8ApiEnabled;
 
         try {
             VectorSchemaRoot root = arrowReader.getVectorSchemaRoot();
@@ -123,10 +126,11 @@ public class RowBatch implements Serializable {
 
     }
 
-    public RowBatch(ArrowReader reader, Schema schema) throws DorisException {
+    public RowBatch(ArrowReader reader, Schema schema, Boolean datetimeJava8ApiEnabled) throws DorisException {
 
         this.arrowReader = reader;
         this.schema = schema;
+        this.datetimeJava8ApiEnabled = datetimeJava8ApiEnabled;
 
         try {
             VectorSchemaRoot root = arrowReader.getVectorSchemaRoot();
@@ -368,7 +372,11 @@ public class RowBatch implements Serializable {
                                 }
                                 String stringValue = new String(date.get(rowIndex));
                                 LocalDate localDate = LocalDate.parse(stringValue);
-                                addValueToRow(rowIndex, Date.valueOf(localDate));
+                                if (datetimeJava8ApiEnabled) {
+                                    addValueToRow(rowIndex, localDate);
+                                } else {
+                                    addValueToRow(rowIndex, Date.valueOf(localDate));
+                                }
                             }
                         } else {
                             DateDayVector date = (DateDayVector) curFieldVector;
@@ -378,7 +386,11 @@ public class RowBatch implements Serializable {
                                     continue;
                                 }
                                 LocalDate localDate = LocalDate.ofEpochDay(date.get(rowIndex));
-                                addValueToRow(rowIndex, Date.valueOf(localDate));
+                                if (datetimeJava8ApiEnabled) {
+                                    addValueToRow(rowIndex, localDate);
+                                } else {
+                                    addValueToRow(rowIndex, Date.valueOf(localDate));
+                                }
                             }
                         }
                         break;

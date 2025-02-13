@@ -45,7 +45,7 @@ public class ReaderPartitionGenerator {
     /*
      * for spark 2
      */
-    public static DorisReaderPartition[] generatePartitions(DorisConfig config) throws Exception {
+    public static DorisReaderPartition[] generatePartitions(DorisConfig config, Boolean datetimeJava8ApiEnabled) throws Exception {
         String[] originReadCols;
         if (config.contains(DorisOptions.DORIS_READ_FIELDS) && !config.getValue(DorisOptions.DORIS_READ_FIELDS).equals("*")) {
             originReadCols = Arrays.stream(config.getValue(DorisOptions.DORIS_READ_FIELDS).split(","))
@@ -55,14 +55,15 @@ public class ReaderPartitionGenerator {
         }
         String[] filters = config.contains(DorisOptions.DORIS_FILTER_QUERY) ?
                 config.getValue(DorisOptions.DORIS_FILTER_QUERY).split("\\.") : new String[0];
-        return generatePartitions(config, originReadCols, filters, -1);
+        return generatePartitions(config, originReadCols, filters, -1, datetimeJava8ApiEnabled);
     }
 
     /*
      * for spark 3
      */
     public static DorisReaderPartition[] generatePartitions(DorisConfig config,
-                                                            String[] fields, String[] filters, Integer limit) throws Exception {
+                                                            String[] fields, String[] filters, Integer limit,
+                                                            Boolean datetimeJava8ApiEnabled) throws Exception {
         DorisFrontendClient frontend = new DorisFrontendClient(config);
         String fullTableName = config.getValue(DorisOptions.DORIS_TABLE_IDENTIFIER);
         String[] tableParts = fullTableName.split("\\.");
@@ -81,7 +82,7 @@ public class ReaderPartitionGenerator {
         Map<String, List<Long>> beToTablets = mappingBeToTablets(queryPlan);
         int maxTabletSize = config.getValue(DorisOptions.DORIS_TABLET_SIZE);
         return distributeTabletsToPartitions(db, table, beToTablets, queryPlan.getOpaqued_query_plan(), maxTabletSize,
-                finalReadColumns, filters, config, limit);
+                finalReadColumns, filters, config, limit, datetimeJava8ApiEnabled);
     }
 
     @VisibleForTesting
@@ -112,7 +113,8 @@ public class ReaderPartitionGenerator {
                                                                         Map<String, List<Long>> beToTablets,
                                                                         String opaquedQueryPlan, int maxTabletSize,
                                                                         String[] readColumns, String[] predicates,
-                                                                        DorisConfig config, Integer limit) {
+                                                                        DorisConfig config, Integer limit,
+                                                                        Boolean datetimeJava8ApiEnabled) {
         List<DorisReaderPartition> partitions = new ArrayList<>();
         beToTablets.forEach((backendStr, tabletIds) -> {
             List<Long> distinctTablets = new ArrayList<>(new HashSet<>(tabletIds));
@@ -121,7 +123,7 @@ public class ReaderPartitionGenerator {
                 Long[] tablets = distinctTablets.subList(offset, Math.min(offset + maxTabletSize, distinctTablets.size())).toArray(new Long[0]);
                 offset += maxTabletSize;
                 partitions.add(new DorisReaderPartition(database, table, new Backend(backendStr), tablets,
-                        opaquedQueryPlan, readColumns, predicates, limit, config));
+                        opaquedQueryPlan, readColumns, predicates, limit, config, datetimeJava8ApiEnabled));
             }
         });
         return partitions.toArray(new DorisReaderPartition[0]);
